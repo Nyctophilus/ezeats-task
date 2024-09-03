@@ -4,6 +4,7 @@ import { Todo } from "@/types/custom";
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
+
 export async function addTodo(formData: FormData) {
   const supabase = createClient();
   const text = formData.get("todo") as string | null;
@@ -23,16 +24,21 @@ export async function addTodo(formData: FormData) {
     };
   }
 
-  const { error } = await supabase.from("todos").insert({
-    task: text,
-    user_id: user.id,
-  });
+  const { data, error } = await supabase
+    .from("todos")
+    .insert({
+      task: text,
+      user_id: user.id,
+    })
+    .select()
+    .single();
 
   if (error) {
     return { message: "Error adding task", error: error.message };
   }
 
   revalidatePath("/todos");
+  return data;
 }
 
 export async function deleteTodo(id: number) {
@@ -45,8 +51,12 @@ export async function deleteTodo(id: number) {
     throw new Error("User is not logged in");
   }
 
+  // if (id.toLocaleString() !== user.id) {
+  //   return { message: "Task Owner only can delete it." };
+  // }
+
   const { error } = await supabase.from("todos").delete().match({
-    user_id: user.id,
+    // user_id: user.id,
     id: id,
   });
 
@@ -68,7 +78,7 @@ export async function updateTodo(todo: Todo) {
   }
 
   const { error } = await supabase.from("todos").update(todo).match({
-    user_id: user.id,
+    // user_id: user.id,
     id: todo.id,
   });
 

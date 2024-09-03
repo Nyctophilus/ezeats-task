@@ -9,6 +9,7 @@ import { updateTodo } from "@/app/todos/actions";
 import { queryClient } from "@/app/providers";
 import { toast } from "sonner";
 import { useTodosStore } from "@/lib/store";
+import { createClient } from "@/utils/supabase/client";
 
 const EditButton = ({
   todo,
@@ -20,12 +21,14 @@ const EditButton = ({
   const [IsEditing, setIsEditing] = useState(false);
   const handleIsEditingStatus = () => setIsEditing(!IsEditing);
   const [todoValue, setTodoValue] = useState(todo.task);
+  const updateTodoStore = useTodosStore((state) => state.updateTodo);
+  const supabase = createClient();
 
   const handleChangeValueTask = async () => {
     setIsEditing(false);
-    const updateTodoStore = useTodosStore((state) => state.updateTodo);
 
     if (todoValue !== todo.task) {
+      // Optimistically add the todo to the store
       startTransition(() =>
         optimisticUpdate({
           action: "update",
@@ -35,13 +38,27 @@ const EditButton = ({
           },
         })
       );
+
+      // Set up real-time subscription
+      supabase
+        .channel("update-channel")
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "todos" },
+          (payload) => {
+            console.log("Change received!", payload);
+            useTodosStore.getState().addTodo(payload.new as Todo);
+          }
+        )
+        .subscribe();
+
+      // Send the todo to the server
       const res = await updateTodo({
         ...todo,
         task: todoValue || todo.task,
       });
 
-      toast(res ? res.message : "Task updated successfully!", {
-        description: "Task must be atleast 4 characters... " + res?.error,
+      toast(res ? res.message : `Task(${todo.task}) updated successfully!`, {
         style: {
           color: res?.error ? "red" : "limegreen",
         },

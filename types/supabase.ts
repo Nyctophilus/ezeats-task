@@ -11,51 +11,74 @@ export type Database = {
     Tables: {
       todos: {
         Row: {
-          id: number
-          inserted_at: string
-          is_complete: boolean | null
-          task: string | null
-          user_id: string
-        }
+          id: number;
+          inserted_at: string;
+          is_complete: boolean | null;
+          task: string | null;
+          user_id: string;
+        };
         Insert: {
-          id?: number
-          inserted_at?: string
-          is_complete?: boolean | null
-          task?: string | null
-          user_id: string
-        }
+          id?: number;
+          inserted_at?: string;
+          is_complete?: boolean | null;
+          task?: string | null;
+          user_id: string;
+        };
         Update: {
-          id?: number
-          inserted_at?: string
-          is_complete?: boolean | null
-          task?: string | null
-          user_id?: string
-        }
+          id?: number;
+          inserted_at?: string;
+          is_complete?: boolean | null;
+          task?: string | null;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "todos_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-    }
+            foreignKeyName: "todos_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      user_role: {
+        Row: {
+          role: string | null;
+          user_id: string;
+        };
+        Insert: {
+          role?: string | null;
+          user_id: string;
+        };
+        Update: {
+          role?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_role_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+    };
     Views: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Functions: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Enums: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
 
 type PublicSchema = Database[Extract<keyof Database, "public">]
 

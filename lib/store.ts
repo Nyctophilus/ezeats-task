@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { Todo } from "@/types/custom";
 
+// todos store
 type TodosState = {
   todos: Todo[];
   setTodos: (todos: Todo[]) => void;
@@ -19,4 +20,16 @@ export const useTodosStore = create<TodosState>((set) => ({
     })),
   deleteTodo: (todo) =>
     set((state) => ({ todos: state.todos.filter((t) => t.id !== todo.id) })),
+}));
+
+// user store
+
+export type RoleState = {
+  role: "view-only"| "editor";
+  setRole: (role: "view-only"| "editor") => void;
+};
+
+export const useUserStore = create<RoleState>((set) => ({
+  role: "editor",
+  setRole: (role) => set({ role }),
 }));

@@ -1,6 +1,18 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { OAuthButtons } from "./oauth-signin";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { emailLogin, signup } from "./actions";
+import { Separator } from "@/components/ui/separator";
 
 export const metadata = {
   title: "Login",
@@ -23,14 +35,64 @@ export default async function Login({
   }
 
   return (
-    <section className="h-[calc(100vh-120px)] lg:h-[calc(100vh-100px)] flex flex-col gap-4 justify-center items-center">
-      <OAuthButtons />
+    <section className="h-[calc(100vh-57px)] flex justify-center items-center">
+      <Card className="mx-auto max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardDescription>
+            Enter your email below to login to your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <form id="login-form" className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="m@example.com"
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <div className="flex items-center">
+                <Label htmlFor="password">Password</Label>
+              </div>
+              <Input
+                minLength={6}
+                name="password"
+                id="password"
+                type="password"
+                placeholder="•••••••••••"
+                required
+              />
+            </div>
+            {searchParams.message && (
+              <div className="text-sm font-medium text-destructive">
+                {searchParams.message}
+              </div>
+            )}
 
-      {searchParams.message && (
-        <div className="text-sm font-medium text-destructive">
-          {searchParams.message}
-        </div>
-      )}
+            <Button formAction={emailLogin} className="w-full">
+              Login
+            </Button>
+          </form>
+          <div className="relative py-2">
+            <Separator className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            <span className="absolute top-1/2 left-1/2 px-3 -translate-y-1/2 -translate-x-1/2 bg-background">
+              or
+            </span>
+          </div>
+          <OAuthButtons />
+          <div className="text-center text-sm">
+            Don&apos;t have an account?{" "}
+            <button formAction={signup} form="login-form" className="underline">
+              Sign up
+            </button>
+          </div>
+        </CardContent>
+      </Card>
     </section>
   );
 }

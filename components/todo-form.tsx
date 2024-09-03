@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader, Send } from "lucide-react";
-import { useRef } from "react";
+import { startTransition, useRef } from "react";
 import { useFormStatus } from "react-dom";
-import { TodoOptimisticUpdate } from "./todo-list";
 import { Todo } from "@/types/custom";
 import { useTodosStore } from "@/lib/store";
-import { queryClient } from "@/app/providers";
 import { toast } from "sonner";
+import { createClient } from "@/utils/supabase/client";
+import { queryClient } from "@/app/providers";
+import { TodoOptimisticUpdate } from "./todo-list";
 
 function FormContent() {
   const { pending } = useFormStatus();
@@ -43,7 +44,9 @@ export function TodoForm({
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const addTodoToStore = useTodosStore((state) => state.addTodo);
+  const supabase = createClient();
 
+  // add new todo
   const handleSubmit = async (data: FormData) => {
     const newTodo: Todo = {
       id: -1,
@@ -52,22 +55,41 @@ export function TodoForm({
       task: data.get("todo") as string,
       is_complete: false,
     };
-    optimisticUpdate({ action: "create", todo: newTodo });
-    const res = await addTodo(data);
 
-    toast(res ? res.message : "Task added successfully!", {
+    // Optimistically add the todo to the store
+    startTransition(() =>
+      optimisticUpdate({ action: "create", todo: newTodo })
+  );
+
+    // Set up real-time subscription
+    supabase
+      .channel("todos")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "todos" },
+        (payload) => {
+          console.log("Change received!", payload);
+          useTodosStore.getState().addTodo(payload.new as Todo);
+        }
+      )
+      .subscribe();
+
+    // Send the todo to the server
+    const res: any = await addTodo(data);
+    toast(res?.message || `Task(${newTodo.task}) added successfully!`, {
       style: {
         color: res?.error ? "red" : "limegreen",
       },
     });
 
-    if (!res) {
+    if (res === null) {
       addTodoToStore(newTodo);
       queryClient.invalidateQueries({
         queryKey: ["todos"],
       });
-      formRef.current?.reset();
     }
+
+    if (res && !res.error) formRef.current?.reset();
   };
 
   return (

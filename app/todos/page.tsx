@@ -18,7 +18,11 @@ export default async function TodosPage() {
     return redirect("/login");
   }
 
+  // await AssignUserRole(user.id);
+
   const todos = await fetchTodos();
+  // const role = await fetchUserRole(user.id);
+  // useUserStore.getState().setRole(role);
 
   return (
     <section className="p-3 pt-6 max-w-2xl w-full flex flex-col gap-4">
