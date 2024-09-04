@@ -7,9 +7,7 @@ import { Loader, Send } from "lucide-react";
 import { startTransition, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { Todo } from "@/types/custom";
-import { useTodosStore } from "@/lib/store";
 import { toast } from "sonner";
-import { createClient } from "@/utils/supabase/client";
 import { queryClient } from "@/app/providers";
 import { TodoOptimisticUpdate } from "./todo-list";
 
@@ -43,8 +41,6 @@ export function TodoForm({
   optimisticUpdate: TodoOptimisticUpdate;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const addTodoToStore = useTodosStore((state) => state.addTodo);
-  const supabase = createClient();
 
   // add new todo
   const handleSubmit = async (data: FormData) => {
@@ -59,37 +55,22 @@ export function TodoForm({
     // Optimistically add the todo to the store
     startTransition(() =>
       optimisticUpdate({ action: "create", todo: newTodo })
-  );
-
-    // Set up real-time subscription
-    supabase
-      .channel("todos")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "todos" },
-        (payload) => {
-          console.log("Change received!", payload);
-          useTodosStore.getState().addTodo(payload.new as Todo);
-        }
-      )
-      .subscribe();
+    );
 
     // Send the todo to the server
     const res: any = await addTodo(data);
-    toast(res?.message || `Task(${newTodo.task}) added successfully!`, {
-      style: {
-        color: res?.error ? "red" : "limegreen",
-      },
-    });
-
-    if (res === null) {
-      addTodoToStore(newTodo);
+    if (res?.message) {
+      toast(res?.message, {
+        style: {
+          color: "red",
+        },
+      });
+    } else {
       queryClient.invalidateQueries({
         queryKey: ["todos"],
       });
+      formRef.current?.reset();
     }
-
-    if (res && !res.error) formRef.current?.reset();
   };
 
   return (

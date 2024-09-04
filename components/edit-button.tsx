@@ -9,7 +9,6 @@ import { updateTodo } from "@/app/todos/actions";
 import { queryClient } from "@/app/providers";
 import { toast } from "sonner";
 import { useTodosStore } from "@/lib/store";
-import { createClient } from "@/utils/supabase/client";
 
 const EditButton = ({
   todo,
@@ -18,44 +17,29 @@ const EditButton = ({
   todo: Todo;
   optimisticUpdate: TodoOptimisticUpdate;
 }) => {
-  const [IsEditing, setIsEditing] = useState(false);
-  const handleIsEditingStatus = () => setIsEditing(!IsEditing);
+  const [isEditing, setIsEditing] = useState(false);
   const [todoValue, setTodoValue] = useState(todo.task);
   const updateTodoStore = useTodosStore((state) => state.updateTodo);
-  const supabase = createClient();
 
   const handleChangeValueTask = async () => {
     setIsEditing(false);
 
     if (todoValue !== todo.task) {
-      // Optimistically add the todo to the store
+      // Optimistically update the todo in the store
       startTransition(() =>
         optimisticUpdate({
           action: "update",
           todo: {
             ...todo,
-            task: todoValue || todo.task,
+            task: todoValue,
           },
         })
       );
 
-      // Set up real-time subscription
-      supabase
-        .channel("update-channel")
-        .on(
-          "postgres_changes",
-          { event: "UPDATE", schema: "public", table: "todos" },
-          (payload) => {
-            console.log("Change received!", payload);
-            useTodosStore.getState().addTodo(payload.new as Todo);
-          }
-        )
-        .subscribe();
-
-      // Send the todo to the server
+      // Send the update to the server
       const res = await updateTodo({
         ...todo,
-        task: todoValue || todo.task,
+        task: todoValue,
       });
 
       toast(res ? res.message : `Task(${todo.task}) updated successfully!`, {
@@ -65,7 +49,7 @@ const EditButton = ({
       });
 
       if (res === null) {
-        updateTodoStore(todo);
+        updateTodoStore({ ...todo, task: todoValue });
         queryClient.invalidateQueries({
           queryKey: ["todos"],
         });
@@ -81,13 +65,15 @@ const EditButton = ({
     }
   };
 
+  const handleIsEditingStatus = () => setIsEditing(!isEditing);
+
   const handleTodoValue = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTodoValue(e.target.value);
   };
 
   return (
     <>
-      {IsEditing ? (
+      {isEditing ? (
         <div className="w-full relative">
           <Input onChange={handleTodoValue} value={todoValue!} type="text" />
 
@@ -102,7 +88,7 @@ const EditButton = ({
           </Button>
         </div>
       ) : (
-        <p className={cn("flex-1 pt-2 min-w-0 break-words")}>{todoValue}</p>
+        <p className={cn("flex-1 pt-2 min-w-0 break-words")}>{todo.task}</p>
       )}
 
       <Button

@@ -12,7 +12,6 @@ import EditButton from "./edit-button";
 import { startTransition } from "react";
 import { toast } from "sonner";
 import { useTodosStore } from "@/lib/store";
-import { createClient } from "@/utils/supabase/client";
 
 export function TodoItem({
   todo,
@@ -23,10 +22,9 @@ export function TodoItem({
 }) {
   const updateTodoStore = useTodosStore((state) => state.updateTodo);
   const deleteTodoStore = useTodosStore((state) => state.deleteTodo);
-  const supabase = createClient();
 
   const handleEditTask = async () => {
-    // Optimistically add the todo to the store
+    // Optimistically update the todo in the store
     startTransition(() =>
       optimisticUpdate({
         action: "update",
@@ -37,33 +35,20 @@ export function TodoItem({
       })
     );
 
-    // Set up real-time subscription
-    supabase
-      .channel("update-channel")
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "todos" },
-        (payload) => {
-          console.log("Change received!", payload);
-          useTodosStore.getState().addTodo(payload.new as Todo);
-        }
-      )
-      .subscribe();
-
-    // Send the todo to the server
+    // Send the update to the server
     const res = await updateTodo({
       ...todo,
       is_complete: !todo.is_complete,
     });
 
-    toast(res ? res.message : `Task(${todo.task}) updated successfully!`, {
-      description: res?.error,
-      style: {
-        color: res?.error ? "red" : "green",
-      },
-    });
-
-    if (res === null) {
+    if (res) {
+      toast(res.message, {
+        description: res?.error,
+        style: {
+          color:  "red" ,
+        },
+      });
+    } else {
       updateTodoStore(todo);
       queryClient.invalidateQueries({
         queryKey: ["todos"],
@@ -72,33 +57,20 @@ export function TodoItem({
   };
 
   const handleDeleteTask = async () => {
-    // Optimistically add the todo to the store
+    // Optimistically delete the todo from the store
     startTransition(() => optimisticUpdate({ action: "delete", todo }));
 
-    // Set up real-time subscription
-    supabase
-      .channel("delete-channel")
-      .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "todos" },
-        (payload) => {
-          console.log("Change received!", payload);
-          useTodosStore.getState().addTodo(payload.new as Todo);
-        }
-      )
-      .subscribe();
-
-    // Send the todo to the server
+    // Send the delete request to the server
     const res = await deleteTodo(todo.id);
 
-    toast(res ? res.message : `Task(${todo.task}) deleted successfully!`, {
+  if(res) { toast(res.message , {
       description: res?.error,
       style: {
-        color: res?.error ? "red" : "orange",
+        color: "red",
       },
-    });
+    });}
 
-    if (res === null) {
+    else {
       deleteTodoStore(todo);
       queryClient.invalidateQueries({
         queryKey: ["todos"],

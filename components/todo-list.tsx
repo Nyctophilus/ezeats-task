@@ -28,17 +28,11 @@ export type TodoOptimisticUpdate = (action: {
   todo: Todo;
 }) => void;
 
-export function TodoList({ todos }: { todos: Array<Todo> }) {
+export function TodoList() {
   const [optimisticTodos, optimisticTodosUpdate] = useOptimistic(
-    todos,
+    useTodosStore((state) => state.todos),
     todoReducer
   );
-
-  const setTodos = useTodosStore((state) => state.setTodos);
-
-  if (todos) {
-    setTodos(todos);
-  }
 
   return (
     <>
@@ -49,7 +43,7 @@ export function TodoList({ todos }: { todos: Array<Todo> }) {
             <TodoItem
               optimisticUpdate={optimisticTodosUpdate}
               todo={todo}
-              key={todo.id}
+              key={todo.id + todo.inserted_at}
             />
           );
         })}
